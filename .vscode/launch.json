@@ -1,0 +1,119 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug executable 'biboot'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=biboot",
+                    "--package=biboot"
+                ],
+                "filter": {
+                    "name": "biboot",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in executable 'biboot'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--bin=biboot",
+                    "--package=biboot"
+                ],
+                "filter": {
+                    "name": "biboot",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug executable 'mkinitrd'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=mkinitrd",
+                    "--package=mkinitrd"
+                ],
+                "filter": {
+                    "name": "mkinitrd",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in executable 'mkinitrd'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--bin=mkinitrd",
+                    "--package=mkinitrd"
+                ],
+                "filter": {
+                    "name": "mkinitrd",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug executable 'kernel'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=kernel",
+                    "--package=kernel"
+                ],
+                "filter": {
+                    "name": "kernel",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in executable 'kernel'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--bin=kernel",
+                    "--package=kernel"
+                ],
+                "filter": {
+                    "name": "kernel",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        }
+    ]
+}

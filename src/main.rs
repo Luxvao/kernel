@@ -13,7 +13,7 @@ use core::panic::PanicInfo;
 #[no_mangle]
 extern "C" fn _start() {
     gdt::init();
-    idt::init();
+    idt::init()
 }
 
 #[panic_handler]
