@@ -1,5 +1,5 @@
 use std::{
-    fs::{File, FileType, ReadDir},
+    fs::{create_dir_all, File, FileType, ReadDir},
     io::{BufRead, BufReader, BufWriter, Read, Write},
     os::unix::ffi::OsStrExt,
     path::Path,
@@ -102,9 +102,35 @@ fn main() {
 
             print_entries(parse_initrd_into_entry(&mut reader).unwrap(), 0);
         }
+        "setup" => {
+            if args.len() != 3 {
+                println!("Bad usage!");
+                exit(1);
+            }
+
+            let output_folder_path = &args[2];
+
+            match create_dir_all(format!("{output_folder_path}/lib/kernel/modules/")) {
+                Ok(_) => (),
+                Err(_) => {
+                    println!("Failed to create the initrd template directory");
+                    exit(1);
+                }
+            }
+
+            match create_dir_all(format!("{output_folder_path}/bin/")) {
+                Ok(_) => (),
+                Err(_) => {
+                    println!("Failed to create the initrd template directory");
+                    exit(1);
+                }
+            }
+
+            println!("Your initrd template was created successfully! The most basic initrd would contain a disk driver & a fs driver in the {{initrd}}/lib/kernel/modules/")
+        }
         "help" => {
             println!(
-                "Usage:\nmkinitrd create [root folder] [output filename]\nmkinitrd list [initrd]"
+                "Usage:\nmkinitrd setup [folder name]\nmkinitrd create [root folder] [output filename]\nmkinitrd list [initrd]"
             );
             exit(0);
         }

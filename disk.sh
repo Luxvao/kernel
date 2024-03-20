@@ -1,7 +1,11 @@
 #! /bin/sh
 
+./build.sh
+
 # Bootloader & kernel
-mv target/i686-unknown-uefi/release/biboot.efi disk/efi/boot/IA32BOOT.EFI
-mv target/i686-unknown-linux-gnu/release/kernel disk/vmkernel
+cp target/i686-unknown-uefi/release/biboot.efi disk/EFI/BOOT/BOOTX64.EFI
+cp biboot/config/* disk/loader/
+cp target/i686-unknown-linux-gnu/release/kernel disk/vmkernel
 
 # Initrd
+cargo r -p mkinitrd create initrd disk/initramfs
