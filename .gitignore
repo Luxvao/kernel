@@ -1,2 +1,5 @@
 target/
 disk/
+disk.img
+kernel_serial.log
+qemu.log
