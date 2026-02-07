@@ -1,4 +1,5 @@
 // pub mod salloc;
+pub mod paging;
 
 // Enum describing memory maps
 #[derive(Clone, Copy, Debug)]

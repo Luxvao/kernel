@@ -1,11 +1,11 @@
 use core::arch::asm;
 
-use crate::arch::amd64::registers::{PrivilegeLevel, CS, DS, ES, FS, GS, SS};
+use crate::arch::amd64::registers::{PrivilegeLevel, SegmentSelector, CS, DS, ES, FS, GS, SS};
 
 static mut GDT: [GdtEntry; 5] = [GdtEntry::null(); 5];
 
 #[repr(C, packed)]
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy)]
 pub struct Gdtr {
     size: u16,
     offset: u64,
@@ -17,16 +17,40 @@ pub struct GdtEntry {
     entry: u64,
 }
 
-#[repr(C, packed)]
 #[derive(Clone, Copy, Debug)]
 pub struct Flags {
     flags: u8,
 }
 
-#[repr(C, packed)]
 #[derive(Clone, Copy, Debug)]
 pub struct AccessByte {
     ab: u8,
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct GdtEntryBuilder {
+    pub base: u32,
+    pub limit: u32,
+    pub flags: Flags,
+    pub access_byte: AccessByte,
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct FlagsBuilder {
+    pub granularity: bool,
+    pub db: bool,
+    pub long: bool,
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct AccessByteBuilder {
+    pub present: bool,
+    pub dpl: PrivilegeLevel,
+    pub entry_type: bool,
+    pub exec: bool,
+    pub dc: bool,
+    pub rw: bool,
+    pub accessed: bool,
 }
 
 impl Gdtr {
@@ -39,11 +63,11 @@ impl Gdtr {
 }
 
 impl GdtEntry {
-    pub const fn null() -> GdtEntry {
+    const fn null() -> GdtEntry {
         GdtEntry { entry: 0 }
     }
 
-    pub fn new(base: u32, limit: u32, flags: Flags, access_byte: AccessByte) -> GdtEntry {
+    const fn new(base: u32, limit: u32, flags: Flags, access_byte: AccessByte) -> GdtEntry {
         GdtEntry {
             entry: (base as u64 & 0xff000000) << 32
                 | (flags.flags as u64) << 52
@@ -56,7 +80,7 @@ impl GdtEntry {
 }
 
 impl Flags {
-    pub fn new(granularity: bool, db: bool, long: bool) -> Flags {
+    const fn new(granularity: bool, db: bool, long: bool) -> Flags {
         Flags {
             flags: (granularity as u8) << 3 | (db as u8) << 2 | (long as u8) << 1,
         }
@@ -64,10 +88,10 @@ impl Flags {
 }
 
 impl AccessByte {
-    pub fn new(
+    const fn new(
         present: bool,
         dpl: PrivilegeLevel,
-        system: bool,
+        entry_type: bool,
         exec: bool,
         dc: bool,
         rw: bool,
@@ -76,7 +100,7 @@ impl AccessByte {
         AccessByte {
             ab: (present as u8) << 7
                 | (dpl as u8) << 5
-                | (system as u8) << 4
+                | (entry_type as u8) << 4
                 | (exec as u8) << 3
                 | (dc as u8) << 2
                 | (rw as u8) << 1
@@ -85,39 +109,128 @@ impl AccessByte {
     }
 }
 
-pub fn init(next_routine: fn()) {
-    setup_gdt();
-    switch_gdt(next_routine);
+impl GdtEntryBuilder {
+    pub const fn build(self) -> GdtEntry {
+        GdtEntry::new(self.base, self.limit, self.flags, self.access_byte)
+    }
 }
 
-fn setup_gdt() {
-    let kernel_code_segment = GdtEntry::new(
-        0,
-        0xfffff,
-        Flags::new(true, false, true),
-        AccessByte::new(true, PrivilegeLevel::Ring0, true, true, false, true, true),
-    );
+impl FlagsBuilder {
+    pub const fn build(self) -> Flags {
+        Flags::new(self.granularity, self.db, self.long)
+    }
+}
 
-    let kernel_data_segment = GdtEntry::new(
-        0,
-        0xfffff,
-        Flags::new(true, false, true),
-        AccessByte::new(true, PrivilegeLevel::Ring0, true, false, false, true, true),
-    );
+impl AccessByteBuilder {
+    pub const fn build(self) -> AccessByte {
+        AccessByte::new(
+            self.present,
+            self.dpl,
+            self.entry_type,
+            self.exec,
+            self.dc,
+            self.rw,
+            self.accessed,
+        )
+    }
+}
 
-    let user_code_segment = GdtEntry::new(
-        0,
-        0xfffff,
-        Flags::new(true, false, true),
-        AccessByte::new(true, PrivilegeLevel::Ring3, true, true, true, true, true),
-    );
+pub fn init(next_routine: fn()) -> Option<()> {
+    setup_gdt()?;
+    switch_gdt(next_routine);
 
-    let user_data_segment = GdtEntry::new(
-        0,
-        0xfffff,
-        Flags::new(true, false, true),
-        AccessByte::new(true, PrivilegeLevel::Ring3, true, false, false, true, true),
-    );
+    // Never returns
+    Some(())
+}
+
+fn setup_gdt() -> Option<()> {
+    let kernel_code_segment = GdtEntryBuilder {
+        base: 0x0,
+        limit: 0xfffff,
+        flags: FlagsBuilder {
+            granularity: true,
+            db: false,
+            long: true,
+        }
+        .build(),
+        access_byte: AccessByteBuilder {
+            present: true,
+            dpl: PrivilegeLevel::Ring0,
+            entry_type: true,
+            exec: true,
+            dc: false,
+            rw: false,
+            accessed: true,
+        }
+        .build(),
+    }
+    .build();
+
+    let kernel_data_segment = GdtEntryBuilder {
+        base: 0x0,
+        limit: 0xfffff,
+        flags: FlagsBuilder {
+            granularity: true,
+            db: false,
+            long: true,
+        }
+        .build(),
+        access_byte: AccessByteBuilder {
+            present: true,
+            dpl: PrivilegeLevel::Ring0,
+            entry_type: true,
+            exec: false,
+            dc: false,
+            rw: true,
+            accessed: true,
+        }
+        .build(),
+    }
+    .build();
+
+    let user_code_segment = GdtEntryBuilder {
+        base: 0x0,
+        limit: 0xfffff,
+        flags: FlagsBuilder {
+            granularity: true,
+            db: false,
+            long: true,
+        }
+        .build(),
+        access_byte: AccessByteBuilder {
+            present: true,
+            dpl: PrivilegeLevel::Ring3,
+            entry_type: true,
+            exec: true,
+            dc: false,
+            rw: false,
+            accessed: true,
+        }
+        .build(),
+    }
+    .build();
+
+    let user_data_segment = GdtEntryBuilder {
+        base: 0x0,
+        limit: 0xfffff,
+        flags: FlagsBuilder {
+            granularity: true,
+            db: false,
+            long: true,
+        }
+        .build(),
+        access_byte: AccessByteBuilder {
+            present: true,
+            dpl: PrivilegeLevel::Ring3,
+            entry_type: true,
+            exec: false,
+            dc: false,
+            rw: true,
+            accessed: true,
+        }
+        .build(),
+    }
+    .build();
 
     unsafe {
         GDT[1] = kernel_code_segment;
@@ -125,6 +238,8 @@ fn setup_gdt() {
         GDT[3] = user_code_segment;
         GDT[4] = user_data_segment;
     }
+
+    Some(())
 }
 
 fn switch_gdt(next_routine: fn()) {
@@ -137,12 +252,16 @@ fn switch_gdt(next_routine: fn()) {
             in(reg) &gdtr
         );
 
-        DS::set(2, false, PrivilegeLevel::Ring0);
-        SS::set(2, false, PrivilegeLevel::Ring0);
-        ES::set(2, false, PrivilegeLevel::Ring0);
-        FS::set(2, false, PrivilegeLevel::Ring0);
-        GS::set(2, false, PrivilegeLevel::Ring0);
+        let kernel_data_segment = SegmentSelector::new(2, false, PrivilegeLevel::Ring0);
 
-        CS::set(1, false, PrivilegeLevel::Ring0, next_routine);
+        DS::set(kernel_data_segment);
+        SS::set(kernel_data_segment);
+        ES::set(kernel_data_segment);
+        FS::set(kernel_data_segment);
+        GS::set(kernel_data_segment);
+
+        let kernel_code_segment = SegmentSelector::new(1, false, PrivilegeLevel::Ring0);
+
+        CS::set(kernel_code_segment, next_routine);
     }
 }

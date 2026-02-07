@@ -1,7 +1,10 @@
-#![feature(c_size_t)]
-#![feature(allocator_api)]
 #![no_std]
 #![no_main]
+#![feature(c_size_t)]
+#![feature(allocator_api)]
+#![feature(const_closures)]
+#![feature(const_trait_impl)]
+#![feature(abi_x86_interrupt)]
 
 // extern crate alloc;
 
@@ -12,18 +15,10 @@ mod limine;
 mod mem;
 mod utils;
 
-use core::fmt::Write;
 #[allow(unused_imports)]
 use core::panic::PanicInfo;
 
-use crate::{
-    arch::amd64::{
-        gdt,
-        registers::{CS, SS},
-    },
-    drivers::io::serial::Uart,
-    utils::halt,
-};
+use crate::{arch::amd64::gdt, utils::halt};
 
 #[export_name = "_start"]
 extern "C" fn kernel_main() {
