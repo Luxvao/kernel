@@ -6,7 +6,7 @@ use seq_macro::seq;
 use crate::arch::amd64::registers::{PrivilegeLevel, SegmentSelector};
 
 // Generate the IDT and the handlers
-type InterruptHandler = extern "x86-interrupt" fn(InterruptStackFrame);
+pub type InterruptHandler = extern "x86-interrupt" fn(InterruptStackFrame);
 
 static mut IDT: [GateDescriptor; 256] = [GateDescriptor::null(); 256];
 
@@ -282,8 +282,6 @@ pub fn init() {
         }
         .build();
     }
-
-    // I hope you like the above. That's real rust gymnastics right there
 
     // TODO Switch to the IDT
 }
